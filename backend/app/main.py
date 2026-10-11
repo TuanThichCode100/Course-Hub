@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Query, Response, status
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from .database import engine
-from .schemas import EnrollmentCreate
+from .schemas import EnrollmentCreate, SectionCapacityUpdate
 
 logger = logging.getLogger(__name__)
 app = FastAPI(
@@ -32,15 +32,21 @@ def health_check() -> dict[str, str]:
         ) from exc
     return {"status": "ok", "database": "connected"}
 
+# Bai 4. Tim kiem va phan trang cho danh sach hoc phan
 @app.get("/courses")
 def list_courses(
     q: str | None = Query(default=None, min_length=1),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=10, ge=1, le=100),
 ) -> list[dict[str, object]]:
     sql = """
     SELECT code, name, credits
     FROM courses
     """
-    parameters: dict[str, object] = {}
+    parameters: dict[str, object] = {
+        "skip": skip,
+        "limit": limit,
+    }
 
     if q is not None:
         keyword = q.strip().lower()
@@ -57,7 +63,7 @@ def list_courses(
 
         parameters["keyword"] = f"%{keyword}%"
     
-    sql += " ORDER BY code"
+    sql += " ORDER BY code OFFSET :skip LIMIT :limit"
 
     with engine.connect() as connection:
         rows = connection.execute(text(sql), parameters).mappings().all()
@@ -82,9 +88,21 @@ def get_course(course_code: str) -> dict[str, object]:
             )
         return dict(row)
 
+# Bai 1. API danh sach giang vien
+@app.get("/lecturers")
+def list_lecturers() -> list[dict[str, object]]:
+    sql = """
+    SELECT id, name
+    FROM lecturers
+    ORDER BY id
+    """
+    with engine.connect() as connection:
+        rows = connection.execute(text(sql)).mappings().all()
+        return [dict(row) for row in rows]
+
 @app.get("/sections")
 def list_sections(
-available_only: bool = False,
+    available_only: bool = False,
 ) -> list[dict[str, object]]:
     sql = """
     SELECT class_id, course_code, capacity, enrolled, remaining
@@ -98,7 +116,85 @@ available_only: bool = False,
     
     with engine.connect() as connection:
         rows = connection.execute(text(sql)).mappings().all()
-        return [dict(row) for row in rows]  
+        return [dict(row) for row in rows]
+
+# Bai 2. API chi tiet mot lop hoc phan
+@app.get("/sections/{section_id}")
+def get_section(section_id: str) -> dict[str, object]:
+    sql = """
+    SELECT cs.id AS class_id,
+           cs.course_code,
+           c.name AS course_name,
+           s.name AS semester_name,
+           l.id AS lecturer_id,
+           l.name AS lecturer_name,
+           v.capacity,
+           v.enrolled,
+           v.remaining
+    FROM class_sections AS cs
+    JOIN courses AS c ON c.code = cs.course_code
+    JOIN semesters AS s ON s.code = cs.semester_code
+    JOIN lecturers AS l ON l.id = cs.lecturer_id
+    JOIN v_section_summary AS v ON v.class_id = cs.id
+    WHERE cs.id = :section_id
+    """
+    with engine.connect() as connection:
+        row = connection.execute(
+            text(sql),
+            {"section_id": section_id},
+        ).mappings().first()
+        if row is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Khong tim thay lop hoc phan",
+            )
+        return dict(row)
+
+# Bai 3. Cap nhat suc chua bang PATCH
+@app.patch("/sections/{section_id}/capacity")
+def update_section_capacity(
+    section_id: str,
+    payload: SectionCapacityUpdate,
+) -> dict[str, object]:
+    check_sql = """
+    SELECT class_id, capacity, enrolled
+    FROM v_section_summary
+    WHERE class_id = :section_id
+    """
+    update_sql = """
+    UPDATE class_sections
+    SET capacity = :capacity
+    WHERE id = :section_id
+    """
+    detail_sql = """
+    SELECT class_id, course_code, capacity, enrolled, remaining
+    FROM v_section_summary
+    WHERE class_id = :section_id
+    """
+    with engine.begin() as connection:
+        section = connection.execute(
+            text(check_sql),
+            {"section_id": section_id},
+        ).mappings().first()
+        if section is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Khong tim thay lop hoc phan",
+            )
+        if payload.capacity < section["enrolled"]:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Suc chua moi khong the nho hon so luong sinh vien da dang ky",
+            )
+        connection.execute(
+            text(update_sql),
+            {"section_id": section_id, "capacity": payload.capacity},
+        )
+        updated = connection.execute(
+            text(detail_sql),
+            {"section_id": section_id},
+        ).mappings().first()
+        return dict(updated)  
 
 @app.get("/students/{student_id}/enrollments")
 def list_student_enrollments(student_id: str) -> list[dict[str, object]]:

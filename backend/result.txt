@@ -1,0 +1,33 @@
+============================================================
+KIEM TRA CHUONG TRINH DANG KY HOC PHAN (05 TINH HUONG)
+============================================================
+[THANH CONG] Tinh huong 1: Dang ky thanh cong (lop con cho, sv ton tai, chua dk)
+   -> Input: student_id='22000002', course_code='INT2204'
+   -> Output: success=True, thong_bao='Dang ky thanh cong'
+
+[THAT BAI] Tinh huong 2: Dang ky trung (sv da dang ky hoc phan nay)
+   -> Input: student_id='22000001', course_code='INT2204'
+   -> Output: success=False, thong_bao='Sinh vien da dang ky hoc phan nay'
+
+[THAT BAI] Tinh huong 3: Lop day (hoc phan da dat suc chua toi da)
+   -> Input: student_id='22000001', course_code='INT2205'
+   -> Output: success=False, thong_bao='Lop da du so luong'
+
+[THAT BAI] Tinh huong 4: Ma hoc phan khong ton tai
+   -> Input: student_id='22000001', course_code='INT9999'
+   -> Output: success=False, thong_bao='Hoc phan khong ton tai'
+
+[THAT BAI] Tinh huong 5: Ma sinh vien khong ton tai
+   -> Input: student_id='99999999', course_code='INT2204'
+   -> Output: success=False, thong_bao='Sinh vien khong ton tai'
+
+============================================================
+TRANG THAI DU LIEU SAU KHI CHAY CAC TINH HUONG:
+Danh sach enrollments:
+   - {'student_id': '22000001', 'course_code': 'INT2204'}
+   - {'student_id': '22000002', 'course_code': 'INT2204'}
+
+Danh sach courses:
+   - INT2204: Co so du lieu Web va he thong thong tin (Enrolled: 3/3)
+   - INT2205: Khai pha du lieu (Enrolled: 2/2)
+============================================================

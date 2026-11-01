@@ -75,3 +75,40 @@ def search_courses(keyword):
     return results
 
 print(search_courses("web"))
+
+# Tìm kiếm sinh viên
+def find_student(student_id):
+    for student in students:
+        if student["id"] == student_id:
+            return student
+    return None
+
+# Hoàn thiện hàm đăng ký học phần
+def enroll_student(student_id, course_code):
+    # 1. Kiểm tra sinh viên tồn tại
+    student = find_student(student_id)
+    if student is None:
+        return False, "Sinh vien khong ton tai"
+
+    # 2. Kiểm tra học phần tồn tại
+    course = find_course(course_code)
+    if course is None:
+        return False, "Hoc phan khong ton tai"
+
+    # 3. Kiểm tra sinh viên chưa đăng ký trùng
+    duplicate = any(
+        item["student_id"] == student_id and item["course_code"] == course_code
+        for item in enrollments
+    )
+    if duplicate:
+        return False, "Sinh vien da dang ky hoc phan nay"
+
+    # 4. Kiểm tra lớp còn chỗ
+    if course["enrolled"] >= course["capacity"]:
+        return False, "Lop da du so luong"
+
+    # 5. Nếu đăng ký thành công: thêm bản ghi mới vào enrollments và cập nhật enrolled của học phần
+    enrollments.append({"student_id": student_id, "course_code": course_code})
+    course["enrolled"] += 1
+    return True, "Dang ky thanh cong"
+

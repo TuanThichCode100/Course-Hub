@@ -1,0 +1,246 @@
+import { useEffect, useState } from "react";
+import { api } from "./api.js";
+import Notice from "./components/Notices.jsx";
+import SectionTable from "./components/SectionTable.jsx";
+import EnrollmentList from "./components/EnrollmentList.jsx";
+import StudentForm from "./components/StudentForm.jsx";
+import EnrollmentHistory from "./components/EnrollmentHistory.jsx";
+
+const EVENT_PAGE_SIZE = 5;
+
+export default function App() {
+  const [draftId, setDraftId] = useState("22000004");
+  const [studentId, setStudentId] = useState("22000004");
+  const [courses, setCourses] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [eventPage, setEventPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState({ kind: "info", text: "" });
+  const [refresh, setRefresh] = useState(0);
+
+  // Tai du lieu chinh: courses, sections, enrollments
+  useEffect(() => {
+    const controller = new AbortController();
+    const options = { signal: controller.signal };
+    async function loadData() {
+      setLoading(true);
+      setError("");
+      try {
+        const [courseData, sectionData, enrollmentData] = await Promise.all([
+          api("/courses", options),
+          api("/sections", options),
+          api(`/students/${encodeURIComponent(studentId)}/enrollments`, options),
+        ]);
+        if (controller.signal.aborted) return;
+        setCourses(courseData);
+        setSections(sectionData);
+        setEnrollments(enrollmentData);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setError(err.message);
+        setCourses([]);
+        setSections([]);
+        setEnrollments([]);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    loadData();
+    return () => controller.abort();
+  }, [studentId, refresh]);
+
+  // Tai nhat ky su kien demo phan trang phia server (khong tai 100.000 dong ve trinh duyet)
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadEvents() {
+      try {
+        const data = await api(
+          `/enrollment-events?student_id=${encodeURIComponent(studentId)}&dataset=demo&skip=${eventPage * EVENT_PAGE_SIZE}&limit=${EVENT_PAGE_SIZE}`,
+          { signal: controller.signal },
+        );
+        if (controller.signal.aborted) return;
+        setEvents(data || []);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        console.error("Khong the tai lich su su kien:", err);
+      }
+    }
+    loadEvents();
+    return () => controller.abort();
+  }, [studentId, eventPage, refresh]);
+
+  function chooseStudent(event) {
+    event.preventDefault();
+    const nextId = draftId.trim();
+    if (!/^\d{8}$/.test(nextId)) {
+      setNotice({ kind: "error", text: "Mã demo phải gồm 8 chữ số." });
+      return;
+    }
+    setNotice({ kind: "info", text: "" });
+    setStudentId(nextId);
+    setEventPage(0);
+    setRefresh((value) => value + 1);
+  }
+
+  async function changeEnrollment(sectionId, cancel = false) {
+    if (busy || loading || error) return;
+    if (cancel && !window.confirm(`Hủy đăng ký lớp ${sectionId}?`)) return;
+    setBusy(true);
+    setNotice({ kind: "info", text: "Đang gửi yêu cầu..." });
+    try {
+      if (cancel) {
+        await api(
+          `/enrollments/${encodeURIComponent(studentId)}/${encodeURIComponent(sectionId)}`,
+          { method: "DELETE" },
+        );
+      } else {
+        await api("/enrollments", {
+          method: "POST",
+          body: { student_id: studentId, class_section_id: sectionId },
+        });
+      }
+      setNotice({
+        kind: "success",
+        text: cancel
+          ? `Đã hủy đăng ký lớp ${sectionId}.`
+          : `Đăng ký lớp ${sectionId} thành công.`,
+      });
+    } catch (err) {
+      setNotice({ kind: "error", text: err.message });
+    } finally {
+      // Doc lai CSDL ke ca sau loi; khong tu cong/tru so cho o giao dien.
+      setLoading(true);
+      setRefresh((value) => value + 1);
+      setBusy(false);
+    }
+  }
+
+  const keyword = search.trim().toLowerCase();
+  const rows = sections
+    .map((section) => ({
+      ...section,
+      course_name:
+        courses.find((course) => course.code === section.course_code)?.name ??
+        section.course_code,
+      registered: enrollments.some(
+        (item) => item.class_section_id === section.class_id,
+      ),
+    }))
+    .filter(
+      (row) =>
+        (!selectedCourse || row.course_code === selectedCourse) &&
+        `${row.class_id} ${row.course_code} ${row.course_name}`
+          .toLowerCase()
+          .includes(keyword) &&
+        (!onlyAvailable || row.remaining > 0),
+    );
+
+  const disabled = loading || busy || Boolean(error);
+
+  return (
+    <main className="container">
+      <header className="hero">
+        <p className="eyebrow">CSDL WEB VÀ HỆ THỐNG THÔNG TIN · BUỔI 5</p>
+        <h1>CourseHub</h1>
+        <p>Tra cứu và đăng ký lớp học phần</p>
+        <span className="chip">React → FastAPI → PostgreSQL</span>
+      </header>
+      <p className="demo-note">
+        Môi trường thực hành. Nhập mã sinh viên để thử dữ liệu, không phải đăng nhập.
+      </p>
+
+      {/* Bai 1: Component chon sinh vien dung props truyen gia tri va ham xu ly */}
+      <StudentForm
+        draftId={draftId}
+        studentId={studentId}
+        busy={busy}
+        loading={loading}
+        onChangeDraft={setDraftId}
+        onSubmit={chooseStudent}
+        onRefresh={() => setRefresh((value) => value + 1)}
+      />
+
+      <Notice kind={notice.kind}>{notice.text}</Notice>
+      <Notice kind="error">{error}</Notice>
+      {loading && <Notice>Đang tải dữ liệu từ API...</Notice>}
+
+      {!loading && !error && (
+        <>
+          <div className="workspace">
+            {/* Bai 2: Danh sach lop hoc phan voi bo loc hoc phan tu GET /courses */}
+            <section className="panel">
+              <h2>2. Danh sách lớp học phần</h2>
+              <div className="filters">
+                <label htmlFor="search">Tìm lớp / học phần</label>
+                <input
+                  id="search"
+                  value={search}
+                  placeholder="Ví dụ: web"
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <select
+                  id="course-filter"
+                  aria-label="Lọc theo học phần"
+                  value={selectedCourse}
+                  onChange={(e) => setSelectedCourse(e.target.value)}
+                >
+                  <option value="">Tất cả học phần</option>
+                  {courses.map((course) => (
+                    <option key={course.code} value={course.code}>
+                      {course.code} – {course.name}
+                    </option>
+                  ))}
+                </select>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={onlyAvailable}
+                    onChange={(e) => setOnlyAvailable(e.target.checked)}
+                  />
+                  Chỉ hiện lớp còn chỗ
+                </label>
+              </div>
+              <SectionTable
+                rows={rows}
+                disabled={disabled}
+                onEnroll={(id) => changeEnrollment(id)}
+              />
+            </section>
+
+            <section className="panel">
+              <h2>3. Lớp đã đăng ký</h2>
+              <p className="muted">
+                Sinh viên {studentId} · {enrollments.length} lớp
+              </p>
+              <EnrollmentList
+                rows={enrollments}
+                disabled={disabled}
+                onCancel={(id) => changeEnrollment(id, true)}
+              />
+            </section>
+          </div>
+
+          {/* Bai 3 & Bai 4: Man hinh lich su cua sinh vien co phan trang CSDL */}
+          <EnrollmentHistory
+            events={events}
+            page={eventPage}
+            pageSize={EVENT_PAGE_SIZE}
+            loading={busy}
+            studentId={studentId}
+            onPrevPage={() => setEventPage((p) => Math.max(0, p - 1))}
+            onNextPage={() => setEventPage((p) => p + 1)}
+          />
+        </>
+      )}
+
+      <footer>Số chỗ và đăng ký được đọc từ API; Backend quyết định tính hợp lệ.</footer>
+    </main>
+  );
+}

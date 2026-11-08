@@ -1,0 +1,285 @@
+{
+  "info": {
+    "_postman_id": "b1a2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    "name": "CourseHub API - Buoi 5",
+    "description": "Bo suu tap API kiem thu CourseHub Buoi 5 bao gom phan trang, tim kiem CSDL va nhat ky enrollment_events",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code la 200\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Database da ket noi\", () => {",
+              "    const data = pm.response.json();",
+              "    pm.expect(data.status).to.eql(\"ok\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "02 - List courses",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code la 200\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Tra ve danh sach hoc phan\", () => {",
+              "    const data = pm.response.json();",
+              "    pm.expect(data.length).to.be.at.least(3);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/courses",
+          "host": ["{{base_url}}"],
+          "path": ["courses"]
+        }
+      }
+    },
+    {
+      "name": "03 - List sections with pagination and course filter (Bai 4)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code la 200\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Loc dung ma hoc phan va phan trang CSDL\", () => {",
+              "    const data = pm.response.json();",
+              "    pm.expect(data).to.be.an(\"array\");",
+              "    data.forEach(item => pm.expect(item.course_code).to.eql(\"INT2204\"));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/sections?course_code=INT2204&skip=0&limit=5",
+          "host": ["{{base_url}}"],
+          "path": ["sections"],
+          "query": [
+            { "key": "course_code", "value": "INT2204" },
+            { "key": "skip", "value": "0" },
+            { "key": "limit", "value": "5" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 - Student enrollments",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code la 200\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/students/22000004/enrollments",
+          "host": ["{{base_url}}"],
+          "path": ["students", "22000004", "enrollments"]
+        }
+      }
+    },
+    {
+      "name": "05 - List enrollment events demo paginated (Bai 3)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code la 200\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Gioi han dung so luong limit 5\", () => {",
+              "    const data = pm.response.json();",
+              "    pm.expect(data).to.be.an(\"array\");",
+              "    pm.expect(data.length).to.be.at.most(5);",
+              "});",
+              "pm.test(\"Chi lay dataset demo\", () => {",
+              "    const data = pm.response.json();",
+              "    data.forEach(event => pm.expect(event.dataset).to.eql(\"demo\"));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/enrollment-events?dataset=demo&skip=0&limit=5",
+          "host": ["{{base_url}}"],
+          "path": ["enrollment-events"],
+          "query": [
+            { "key": "dataset", "value": "demo" },
+            { "key": "skip", "value": "0" },
+            { "key": "limit", "value": "5" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 - List enrollment events for student (Bai 3)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code la 200\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Chi tra ve su kien cua sinh vien 22000004\", () => {",
+              "    const data = pm.response.json();",
+              "    data.forEach(event => pm.expect(event.student_id).to.eql(\"22000004\"));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/enrollment-events?student_id=22000004&dataset=demo&limit=5",
+          "host": ["{{base_url}}"],
+          "path": ["enrollment-events"],
+          "query": [
+            { "key": "student_id", "value": "22000004" },
+            { "key": "dataset", "value": "demo" },
+            { "key": "limit", "value": "5" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 - List enrollment events invalid dataset error",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code la 400\", () => {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/enrollment-events?dataset=invalid",
+          "host": ["{{base_url}}"],
+          "path": ["enrollment-events"],
+          "query": [
+            { "key": "dataset", "value": "invalid" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "08 - Create enrollment duplicate (409 Conflict)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code la 409\", () => {",
+              "    pm.response.to.have.status(409);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"student_id\": \"22000001\",\n    \"class_section_id\": \"WEB-01\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/enrollments",
+          "host": ["{{base_url}}"],
+          "path": ["enrollments"]
+        }
+      }
+    },
+    {
+      "name": "09 - Delete enrollment not found (404 Not Found)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code la 404\", () => {",
+              "    pm.response.to.have.status(404);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/enrollments/22000001/NON-EXISTENT",
+          "host": ["{{base_url}}"],
+          "path": ["enrollments", "22000001", "NON-EXISTENT"]
+        }
+      }
+    }
+  ]
+}

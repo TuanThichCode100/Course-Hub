@@ -1,6 +1,7 @@
 # Virtual environment
 .venv/
 venv/
+node_modules/
 
 # Python cache
 __pycache__/
@@ -9,6 +10,7 @@ __pycache__/
 # Environment variables
 .env
 *.env
+.env.local
 
 # IDE / Editor
 .vscode/

@@ -1,0 +1,16 @@
+-- Tab A - khoa dong va giu 8 giay
+-- BEGIN;
+-- SELECT id, capacity
+-- FROM class_sections
+-- WHERE id = 'RACE-01'
+-- FOR UPDATE;
+-- SELECT pg_sleep(8);
+-- COMMIT;
+
+-- Tab B - chay khi Tab A dang cho
+-- BEGIN;
+-- SELECT id, capacity
+-- FROM class_sections
+-- WHERE id = 'RACE-01'
+-- FOR UPDATE;
+-- ROLLBACK;

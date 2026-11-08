@@ -1,5 +1,7 @@
 export default function EnrollmentList({ rows, disabled, onCancel }) {
-  if (rows.length === 0) return <p>Sinh viên chưa đăng ký lớp nào.</p>;
+  if (rows.length === 0) {
+    return <p className="empty-message">Sinh viên chưa đăng ký lớp nào.</p>;
+  }
   return (
     <ul className="enrollments">
       {rows.map((row) => (
@@ -8,8 +10,12 @@ export default function EnrollmentList({ rows, disabled, onCancel }) {
             <strong>{row.class_section_id}</strong>
             <span className="subtext">{row.course_name}</span>
           </div>
-          <button type="button" className="secondary"
-            disabled={disabled} onClick={() => onCancel(row.class_section_id)}>
+          <button
+            type="button"
+            className="secondary"
+            disabled={disabled}
+            onClick={() => onCancel(row.class_section_id)}
+          >
             Hủy đăng ký
           </button>
         </li>

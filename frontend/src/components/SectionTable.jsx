@@ -1,5 +1,7 @@
 export default function SectionTable({ rows, disabled, onEnroll }) {
-  if (rows.length === 0) return <p>Không có lớp phù hợp với bộ lọc.</p>;
+  if (rows.length === 0) {
+    return <p className="empty-message">Không có lớp phù hợp với bộ lọc.</p>;
+  }
   return (
     <div className="table-scroll">
       <table aria-label="Danh sách lớp học phần">
